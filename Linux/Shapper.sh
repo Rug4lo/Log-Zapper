@@ -91,7 +91,6 @@ common_logs=(
   "/etc/httpd/logs/error_log"
   "/etc/lastlog"
   "/etc/mail/access"
-  "/etc/ssh/sshd_config"
   "/etc/utmp"
   "/etc/utmpx"
   "/etc/wtmp"
