@@ -1,4 +1,4 @@
-# Depencies
+# Dependencies
 from colorama import Fore, init, Style, Back
 from pathlib import Path
 from pywintypes import Time
@@ -25,9 +25,8 @@ goodst=Fore.GREEN
 warnst=Fore.RED
 reset=Style.RESET_ALL
 
-# Support functions
+# Function to get headers of event logs
 def getEvtx():
-    # This path contains the headers of the most important file events in the winevt logs
     evtxPath= "C:\ProgramData\Microsoft\Event Viewer\ExternalLogs"
     evtxPathContent = Path(evtxPath).iterdir()
 
@@ -35,8 +34,8 @@ def getEvtx():
         for file in evtxPathContent:
                 yield str(file)
 
+# Verify is the file is used in any process
 def checkStatus(filename:str) -> bool:
-    # Verify is the file is used in a process
     try:
         file_handle = CreateFile(filename, GENERIC_READ | GENERIC_WRITE, 0, None, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, None)
         if file_handle:
@@ -47,20 +46,21 @@ def checkStatus(filename:str) -> bool:
             return True
     return False
 
+
+# Function to get common log files
 def getLog():
-    # Filter by directories and extensions to find unknown logs
     dir_path = os.path.dirname("C:\\")
 
     for root, _, files in os.walk(dir_path):
         if os.path.basename(root).lower() == 'logs':
             for file in files:
-                yield (os.path.join(root, file))
+                yield(os.path.join(root, file))
         for file in files:
             if file.lower().endswith('.log'):
-                yield (os.path.join(root, file))
+                yield(os.path.join(root, file))
 
+# Function to get timestamp of a file
 def getTS(filePath:str) -> tuple:
-    # Obtain the timestamp of the files
     stat = Path(filePath).stat()
 
     access_time = dt.datetime.fromtimestamp(stat.st_atime_ns / 1_000_000_000).strftime(format)
@@ -69,24 +69,24 @@ def getTS(filePath:str) -> tuple:
 
     return change_time, modify_time, access_time
 
+# Function to set timestamp of a file
 def setTS(createTime:str, modifyTime:str, accessTime:str, filePath:str) -> None:
-    # Configure new timestamp for the files
     fh = CreateFile(filePath, GENERIC_READ | GENERIC_WRITE, 0, None, OPEN_EXISTING, 0, 0) 
     try:
-        createTime = Time(time.mktime(time.localtime(time.mktime(time.strptime(createTime,format))+0)))
-        accessTime = Time(time.mktime(time.localtime(time.mktime(time.strptime(accessTime,format))+0)))
-        modifyTime = Time(time.mktime(time.localtime(time.mktime(time.strptime(modifyTime,format))+0)))
-    except RuntimeError as _:
+        createTime = Time(time.mktime(time.strptime(create_time, format)))
+        accessTime = Time(time.mktime(time.strptime(create_time, format))
+        modifyTime = Time(time.mktime(time.strptime(create_time, format))
+    except RuntimeError:
         time.sleep(0.3)
-        createTime = Time(time.mktime(time.localtime(time.mktime(time.strptime(createTime,format))+0)))
-        accessTime = Time(time.mktime(time.localtime(time.mktime(time.strptime(accessTime,format))+0)))
-        modifyTime = Time(time.mktime(time.localtime(time.mktime(time.strptime(modifyTime,format))+0)))
+        createTime = Time(time.mktime(time.strptime(create_time, format))
+        accessTime = Time(time.mktime(time.strptime(create_time, format))
+        modifyTime = Time(time.mktime(time.strptime(create_time, format))
         
     SetFileTime(fh, createTime, accessTime, modifyTime) 
     CloseHandle(fh)
 
+# Function to perform Gutmann method
 def gutmann(filePath:str) -> int:
-    # First phase and patron for remove a file
     fileSize=(os.stat(filePath)).st_size
     rnd = lambda: os.urandom(3)
 
@@ -108,11 +108,10 @@ def gutmann(filePath:str) -> int:
             else:
                 dummy_file.write(loop * 21845)
         
-    rnd = lambda : str(os.urandom(3))
     return fileSize
 
+# Function to calculate the number of types of overwrites
 def overwriteCalulator(number:int):
-    # Calculator for a with patrons and zeros
     if number <= 0:
         return 0, 0
 
@@ -121,12 +120,12 @@ def overwriteCalulator(number:int):
 
     return overwrite1,overwrite0
 
+# Function to erase correctly a file
 def removeFile(filePath: str, fileSize: int, overwriteN: int=9):
-    # Second phase for the file remover
     nOverWrite1, nOverWrite0 = overwriteCalulator(overwriteN)
-        
+
+              # Overwrite with random patrons
     with open(filePath, "r+b") as dummy_file:
-        # Overwrite the file with random patrons
         for n in range(nOverWrite1):
             dummy_file.truncate(0)
             dummy_file.seek(0)
@@ -141,8 +140,8 @@ def removeFile(filePath: str, fileSize: int, overwriteN: int=9):
             dummy_file.seek(0)
             dummy_file.write(bytearray(255 for _ in range(fileSize)))
 
+               # Overwrite the file with zeros
     with open(filePath, "r+b") as dummy_file:
-        # Overwrite the file with zeros
         for n in range(nOverWrite0):
             dummy_file.seek(0)
             dummy_file.write(bytearray(getrandbits(8) for _ in range(fileSize)))
@@ -157,11 +156,9 @@ def removeFile(filePath: str, fileSize: int, overwriteN: int=9):
             dummy_file.write(bytearray(255 for _ in range(fileSize)))     
 
 def joiner(logFile):
-    # Main function
     try:
         if checkStatus(logFile):
             print(f"\n{warnst}[!]{reset} Skipping {badFileColor+logFile+reset} as it is use by another process")
-
             return
         
         at, mt, ct = getTS(logFile)
@@ -173,8 +170,8 @@ def joiner(logFile):
         print(f"\n{warnst}[!]{reset} Skipping {badFileColor+logFile+reset} due to insufficient permissions")
 
 @main_requires_admin
+# Main function with admin perms
 def main():
-    # Main function with admin perms
     evtxLogs=getEvtx()
     for logFile in evtxLogs:
         joiner(logFile)
@@ -190,4 +187,4 @@ if __name__ == '__main__':
     main()
 
     print(f"{goodst}[++]{reset} Thanks for using the tool, enjoy your new free log windows")
-    print("Make by Rug4lo & yoshl")
+    print("Made by Rug4lo & yoshl")
