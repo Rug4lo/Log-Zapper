@@ -48,7 +48,7 @@ def clearEvtx():
     EVT_HANDLE = HANDLE
     EVT_LOG_READ_ACCESS = 0x1
 
-    for logFile in ["Aplication", "Security", "Windows Powershell", "System", "Setup"]:
+    for logFile in ["Application", "Security", "Windows Powershell", "System", "Setup"]:
         h_log = EvtOpenLog(NULL, logFile, EVT_LOG_READ_ACCESS)
         if not h_log:
             raise ctypes.WinError(ctypes.get_last_error(), f"Failed to open log: {logFile}")
@@ -60,7 +60,7 @@ def clearEvtx():
             raise ctypes.WinError(error_code, f"Failed to clear log: {logFile}")
     
         if not EvtClose(h_log):
-            raise ctypes.WinError(ctypes.get_last_error(), f"Failed to close log handle: {log_name}")
+            raise ctypes.WinError(ctypes.get_last_error(), f"Failed to close log handle: {logFile}")
 
         print(f"{goodst}[+]{reset} The file: {fileColor+logFile+reset} has been successfully cleared")
 
@@ -113,14 +113,14 @@ def getTS(filePath:str) -> tuple:
 def setTS(createTime:str, modifyTime:str, accessTime:str, filePath:str) -> None:
     fh = CreateFile(filePath, GENERIC_READ | GENERIC_WRITE, 0, None, OPEN_EXISTING, 0, 0) 
     try:
-        createTime = Time(time.mktime(time.strptime(create_time, format)))
-        accessTime = Time(time.mktime(time.strptime(create_time, format))
-        modifyTime = Time(time.mktime(time.strptime(create_time, format))
-    except RuntimeError:
+        createTime = Time(time.mktime(time.localtime(time.mktime(time.strptime(createTime,format))+0)))
+        accessTime = Time(time.mktime(time.localtime(time.mktime(time.strptime(accessTime,format))+0)))
+        modifyTime = Time(time.mktime(time.localtime(time.mktime(time.strptime(modifyTime,format))+0)))
+    except RuntimeError as _:
         time.sleep(0.3)
-        createTime = Time(time.mktime(time.strptime(create_time, format))
-        accessTime = Time(time.mktime(time.strptime(create_time, format))
-        modifyTime = Time(time.mktime(time.strptime(create_time, format))
+        createTime = Time(time.mktime(time.localtime(time.mktime(time.strptime(createTime,format))+0)))
+        accessTime = Time(time.mktime(time.localtime(time.mktime(time.strptime(accessTime,format))+0)))
+        modifyTime = Time(time.mktime(time.localtime(time.mktime(time.strptime(modifyTime,format))+0)))
         
     SetFileTime(fh, createTime, accessTime, modifyTime) 
     CloseHandle(fh)
